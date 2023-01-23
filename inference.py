@@ -1,8 +1,6 @@
 import os
 import cv2
 import time
-import umap
-import wandb
 import torch
 import subprocess
 import matplotlib
@@ -16,17 +14,15 @@ from tqdm import tqdm
 from PIL import Image
 from umap import UMAP
 from torchvision import transforms
-from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-from scipy import stats
-from scipy.signal import medfilt, resample
+from scipy.signal import medfilt
 from scipy.ndimage import median_filter, gaussian_filter
 from scipy.spatial.distance import pdist, squareform
-from matplotlib.animation import FuncAnimation, FFMpegWriter
+from matplotlib.animation import FFMpegWriter
 from matplotlib.colors import PowerNorm
 from sklearn.decomposition import PCA 
 
-from visualize import pred_rep, predSmall
+from visualize import predSmall
 
 plt.style.use('dark_background')
 plt.rcParams['animation.ffmpeg_path'] ='C:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI\\ffmpeg.exe'

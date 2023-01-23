@@ -37,6 +37,7 @@ app = dash.Dash(__name__, server=server,
                 update_title='Loading...',
                 external_stylesheets=[dbc.themes.DARKLY], background_callback_manager=background_callback_manager)
 app.config.suppress_callback_exceptions=True               
+server = app.server
 UPLOAD_FOLDER_ROOT = "uploaded_videos"
 TMP_IMG_FOLDER_ROOT = "tmp_imgs"
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
@@ -303,32 +304,35 @@ def update_progress(set_progress, n_clicks, video_files, current_results):
       set_progress(progress_load_model())
       video_file = video_files[0]
       use_cuda = torch.cuda.is_available()
+      # if not use_cuda:
+      #    set_progress((None, None, {'display': 'none'}, "", False, True, "Wait, someone is already using the GPU..."))
+      #    return current_results
+      # else:
+      device = torch.device("cuda" if use_cuda else "cpu")
+      print(device)
+      model = RepNet(64, backbone='keypoint', backbone_scale='0', trainable_backbone=False, img_size=228)
+      model = model.to(device)
+      print("loading checkpoint")
       if not use_cuda:
-         set_progress((None, None, {'display': 'none'}, "", False, True, "Wait, someone is already using the GPU..."))
-         return current_results
+         checkpoint = torch.load("models/ropenet_224.pt", map_location=torch.device('cpu'))
       else:
-         device = torch.device("cuda" if use_cuda else "cpu")
-         print(device)
-         model = RepNet(64, backbone='keypoint', backbone_scale='0', trainable_backbone=False, img_size=228)
-         model = model.to(device)
-         print("loading checkpoint")
          checkpoint = torch.load("models/ropenet_224.pt")
-         model.load_state_dict(checkpoint['state_dict'], strict=True)
-         count_msg = eval_full_video(test_video=str(video_file), model=model, device=device, img_size=228, both_feet=True, 
-                        animate=True, out_dir=os.path.join(TMP_IMG_FOLDER_ROOT, os.path.dirname(video_file)), progress_func=set_progress, html_gen_func=progress_inference)
-         
-         webm_file = os.path.join(TMP_IMG_FOLDER_ROOT, os.path.dirname(video_file), 'anim_0.webm')
-         video_code = base64_encode_video(webm_file)
-         output_children = html.Video(controls = True,
-                                          id = 'result-video',
-                                          children=[html.Source(type='video/webm', 
-                                                               src=video_code),
-                                                   "Your browser may not support HTML5 video. Sorry about that."],
-                                          key=video_file,
-                                          autoPlay=False)
-         remove_directory_containing_file(video_file)
-         set_progress((None, None, {'display': 'none'}, "Reset to count another video", True, True, count_msg))
-         return output_children
+      model.load_state_dict(checkpoint['state_dict'], strict=True)
+      count_msg = eval_full_video(test_video=str(video_file), model=model, device=device, img_size=228, both_feet=True, 
+                     animate=True, out_dir=os.path.join(TMP_IMG_FOLDER_ROOT, os.path.dirname(video_file)), progress_func=set_progress, html_gen_func=progress_inference)
+      
+      webm_file = os.path.join(TMP_IMG_FOLDER_ROOT, os.path.dirname(video_file), 'anim_0.webm')
+      video_code = base64_encode_video(webm_file)
+      output_children = html.Video(controls = True,
+                                       id = 'result-video',
+                                       children=[html.Source(type='video/webm', 
+                                                            src=video_code),
+                                                "Your browser may not support HTML5 video. Sorry about that."],
+                                       key=video_file,
+                                       autoPlay=False)
+      remove_directory_containing_file(video_file)
+      set_progress((None, None, {'display': 'none'}, "Reset to count another video", True, True, count_msg))
+      return output_children
 
 
 if __name__ == '__main__':
